@@ -438,6 +438,23 @@ h1 {
   margin-bottom: 2px;
 }
 
+.forecast-select select {
+  height: 40px;
+  min-width: 156px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 36px 0 12px;
+  color: var(--ink);
+  background: var(--surface-soft);
+  font-weight: 800;
+  outline: none;
+}
+
+.forecast-select select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(22, 122, 131, 0.16);
+}
+
 .metar-panel pre {
   overflow-x: auto;
   margin: 0;
@@ -479,15 +496,23 @@ h1 {
   font-size: 1.08rem;
 }
 
-.hourly {
+.forecast-cards {
   display: grid;
-  grid-template-columns: repeat(8, minmax(92px, 1fr));
   gap: 10px;
   overflow-x: auto;
   padding-bottom: 4px;
 }
 
-.hour-card {
+.forecast-cards.hourly {
+  grid-template-columns: repeat(8, minmax(92px, 1fr));
+}
+
+.forecast-cards.daily {
+  grid-template-columns: repeat(7, minmax(124px, 1fr));
+}
+
+.hour-card,
+.day-card {
   min-height: 126px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -495,23 +520,38 @@ h1 {
   background: var(--surface-soft);
 }
 
-.hour-card time {
+.day-card {
+  min-height: 168px;
+}
+
+.hour-card time,
+.day-card time {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 800;
 }
 
-.hour-card strong {
+.hour-card strong,
+.day-card strong {
   display: block;
   margin: 10px 0;
   font-size: 1.55rem;
 }
 
-.hour-card span {
+.hour-card span,
+.day-card span,
+.day-card em {
   display: block;
   color: var(--muted);
   font-size: 0.82rem;
   line-height: 1.45;
+}
+
+.day-card em {
+  margin-top: 8px;
+  color: var(--accent-strong);
+  font-style: normal;
+  font-weight: 800;
 }
 
 .toast {

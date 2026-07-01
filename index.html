@@ -70,10 +70,19 @@
 
       <section class="forecast-strip" aria-label="Short forecast">
         <div class="section-heading">
-          <h2>Next few hours</h2>
-          <p>Temperature, rain chance, and wind at a glance.</p>
+          <div>
+            <h2 id="forecastTitle">Next few hours</h2>
+            <p id="forecastSummary">Temperature, rain chance, and wind at a glance.</p>
+          </div>
+          <label class="forecast-select">
+            <span class="sr-only">Forecast range</span>
+            <select id="forecastMode">
+              <option value="hourly">Next few hours</option>
+              <option value="daily">Next 7 days</option>
+            </select>
+          </label>
         </div>
-        <div id="hourlyForecast" class="hourly"></div>
+        <div id="forecastCards" class="forecast-cards"></div>
       </section>
     </main>
 

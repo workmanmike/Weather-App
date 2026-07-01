@@ -4,13 +4,18 @@ const state = {
   lastRefreshAt: null,
   nextRefreshAt: null,
   isRefreshing: false,
+  forecastMode: "hourly",
+  latestWeather: null,
 };
 
 const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 const STALE_AFTER_MS = 90 * 1000;
 
 const metricGrid = document.querySelector("#metricGrid");
-const hourlyForecast = document.querySelector("#hourlyForecast");
+const forecastCards = document.querySelector("#forecastCards");
+const forecastMode = document.querySelector("#forecastMode");
+const forecastTitle = document.querySelector("#forecastTitle");
+const forecastSummary = document.querySelector("#forecastSummary");
 const searchForm = document.querySelector("#searchForm");
 const locationInput = document.querySelector("#locationInput");
 const locateButton = document.querySelector("#locateButton");
@@ -122,7 +127,15 @@ async function fetchWeather(latitude, longitude, place, options = {}) {
       "precipitation_probability",
       "wind_speed_10m",
     ].join(","),
-    daily: "sunrise,sunset",
+    daily: [
+      "weather_code",
+      "temperature_2m_max",
+      "temperature_2m_min",
+      "precipitation_probability_max",
+      "wind_speed_10m_max",
+      "sunrise",
+      "sunset",
+    ].join(","),
     forecast_hours: "12",
     temperature_unit: "fahrenheit",
     wind_speed_unit: "mph",
@@ -151,6 +164,7 @@ async function fetchWeather(latitude, longitude, place, options = {}) {
 }
 
 function renderWeather(data, place) {
+  state.latestWeather = data;
   const current = data.current;
   const units = data.current_units;
   const summary = weatherCodes[current.weather_code] || "Current weather";
@@ -232,7 +246,7 @@ function renderWeather(data, place) {
   ];
 
   metricGrid.innerHTML = metrics.map(renderMetricCard).join("");
-  renderHourly(data.hourly, data.hourly_units);
+  renderForecast();
   updateRefreshStatus();
 }
 
@@ -252,8 +266,22 @@ function renderMetricCard(metric) {
   `;
 }
 
+function renderForecast() {
+  if (!state.latestWeather) return;
+
+  if (state.forecastMode === "daily") {
+    renderDaily(state.latestWeather.daily, state.latestWeather.daily_units);
+    return;
+  }
+
+  renderHourly(state.latestWeather.hourly, state.latestWeather.hourly_units);
+}
+
 function renderHourly(hourly, units) {
-  hourlyForecast.innerHTML = hourly.time.slice(0, 8).map((time, index) => `
+  forecastTitle.textContent = "Next few hours";
+  forecastSummary.textContent = "Temperature, rain chance, and wind at a glance.";
+  forecastCards.className = "forecast-cards hourly";
+  forecastCards.innerHTML = hourly.time.slice(0, 8).map((time, index) => `
     <article class="hour-card">
       <time datetime="${time}">${formatTime(time)}</time>
       <strong>${Math.round(hourly.temperature_2m[index])}${units.temperature_2m}</strong>
@@ -261,6 +289,36 @@ function renderHourly(hourly, units) {
       <span>${Math.round(hourly.wind_speed_10m[index])} ${units.wind_speed_10m} wind</span>
     </article>
   `).join("");
+}
+
+function renderDaily(daily, units) {
+  forecastTitle.textContent = "Next 7 days";
+  forecastSummary.textContent = "Daily highs, lows, rain chance, and peak wind.";
+  forecastCards.className = "forecast-cards daily";
+  forecastCards.innerHTML = daily.time.slice(0, 7).map((date, index) => {
+    const code = daily.weather_code[index];
+    return `
+      <article class="day-card">
+        <time datetime="${date}">${formatDay(date, index)}</time>
+        <strong>${Math.round(daily.temperature_2m_max[index])}${units.temperature_2m_max}</strong>
+        <span>${Math.round(daily.temperature_2m_min[index])}${units.temperature_2m_min} low</span>
+        <span>${daily.precipitation_probability_max[index]}${units.precipitation_probability_max} rain</span>
+        <span>${Math.round(daily.wind_speed_10m_max[index])} ${units.wind_speed_10m_max} wind</span>
+        <em>${weatherCodes[code] || "Forecast"}</em>
+      </article>
+    `;
+  }).join("");
+}
+
+function formatDay(value, index) {
+  if (index === 0) return "Today";
+  if (index === 1) return "Tomorrow";
+
+  return new Intl.DateTimeFormat([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${value}T12:00:00`));
 }
 
 function updateLocationMap(latitude, longitude, place) {
@@ -629,6 +687,10 @@ searchForm.addEventListener("submit", async (event) => {
 locateButton.addEventListener("click", locate);
 refreshButton.addEventListener("click", () => refreshNow({ silent: false }));
 themeButton.addEventListener("click", toggleTheme);
+forecastMode.addEventListener("change", () => {
+  state.forecastMode = forecastMode.value;
+  renderForecast();
+});
 
 document.addEventListener("visibilitychange", () => {
   if (document.hidden || !state.lastRefreshAt) return;
