@@ -6,7 +6,7 @@ const state = {
   isRefreshing: false,
 };
 
-const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 const STALE_AFTER_MS = 90 * 1000;
 
 const metricGrid = document.querySelector("#metricGrid");
@@ -18,6 +18,9 @@ const refreshButton = document.querySelector("#refreshButton");
 const themeButton = document.querySelector("#themeButton");
 const liveStatus = document.querySelector("#liveStatus");
 const refreshStatus = document.querySelector("#refreshStatus");
+const metarStation = document.querySelector("#metarStation");
+const metarRaw = document.querySelector("#metarRaw");
+const metarDetails = document.querySelector("#metarDetails");
 const toast = document.querySelector("#toast");
 let refreshTimer;
 let countdownTimer;
@@ -117,6 +120,7 @@ async function fetchWeather(latitude, longitude, place, options = {}) {
       "precipitation_probability",
       "wind_speed_10m",
     ].join(","),
+    daily: "sunrise,sunset",
     forecast_hours: "12",
     temperature_unit: "fahrenheit",
     wind_speed_unit: "mph",
@@ -135,6 +139,7 @@ async function fetchWeather(latitude, longitude, place, options = {}) {
     state.lastRefreshAt = new Date();
     state.nextRefreshAt = new Date(Date.now() + REFRESH_INTERVAL_MS);
     renderWeather(data, place);
+    fetchMetar(latitude, longitude);
     scheduleLiveRefresh();
   } finally {
     state.isRefreshing = false;
@@ -148,6 +153,8 @@ function renderWeather(data, place) {
   const units = data.current_units;
   const summary = weatherCodes[current.weather_code] || "Current weather";
   const windDirection = compass(current.wind_direction_10m);
+  const sunrise = data.daily?.sunrise?.[0];
+  const sunset = data.daily?.sunset?.[0];
 
   document.querySelector("#placeName").textContent = place;
   document.querySelector("#updatedAt").textContent = `Updated ${formatUpdated(current.time)}`;
@@ -160,6 +167,7 @@ function renderWeather(data, place) {
   document.querySelector("#coordinates").textContent =
     `${Number(data.latitude).toFixed(3)}, ${Number(data.longitude).toFixed(3)} | ${data.timezone_abbreviation}`;
   liveStatus.textContent = "Live updates on";
+  document.documentElement.dataset.weather = weatherTheme(current.weather_code, current.is_day);
 
   const metrics = [
     {
@@ -218,6 +226,20 @@ function renderWeather(data, place) {
       unit: units.surface_pressure,
       note: "Local pressure adjusted for terrain near the forecast point.",
     },
+    {
+      icon: "\u2191",
+      label: "Sunrise",
+      value: sunrise ? formatTime(sunrise) : "--",
+      unit: "",
+      note: "First light timing for the selected forecast point.",
+    },
+    {
+      icon: "\u2193",
+      label: "Sunset",
+      value: sunset ? formatTime(sunset) : "--",
+      unit: "",
+      note: "Evening light timing for the selected forecast point.",
+    },
   ];
 
   metricGrid.innerHTML = metrics.map(renderMetricCard).join("");
@@ -252,6 +274,62 @@ function renderHourly(hourly, units) {
   `).join("");
 }
 
+async function fetchMetar(latitude, longitude) {
+  metarStation.textContent = "Finding nearest reporting station...";
+  metarRaw.textContent = "Loading local METAR...";
+  metarDetails.innerHTML = "";
+
+  try {
+    const response = await fetch(`/api/metar?lat=${latitude}&lon=${longitude}`);
+    if (!response.ok) {
+      throw new Error(await response.text() || "METAR feed did not return a report.");
+    }
+
+    const report = await response.json();
+    renderMetar(report);
+  } catch (error) {
+    metarStation.textContent = "METAR unavailable";
+    metarRaw.textContent =
+      "Start the local Node server to enable METAR reports, or try again once the aviation feed is available.";
+    metarDetails.innerHTML = "";
+  }
+}
+
+function renderMetar(report) {
+  const observed = report.reportTime || report.receiptTime;
+  const distance = Number.isFinite(report.distanceMiles) ? `${report.distanceMiles.toFixed(1)} mi away` : "nearby";
+  metarStation.textContent = `${report.icaoId || "Station"} | ${distance} | ${observed ? formatUpdated(observed) : "latest"}`;
+  metarRaw.textContent = report.rawOb || "No raw METAR text returned.";
+
+  const details = [
+    ["Wind", formatMetarWind(report)],
+    ["Visibility", report.visib ? `${report.visib} SM` : "--"],
+    ["Altimeter", report.altim ? `${report.altim} hPa` : "--"],
+    ["Ceiling", formatClouds(report.clouds)],
+  ];
+
+  metarDetails.innerHTML = details.map(([label, value]) => `
+    <div class="metar-detail">
+      <span>${label}</span>
+      <strong>${value}</strong>
+    </div>
+  `).join("");
+}
+
+function formatMetarWind(report) {
+  if (!Number.isFinite(report.wspd)) return "Calm or unavailable";
+  const direction = Number.isFinite(report.wdir) ? `${report.wdir}\u00b0` : "VRB";
+  const gust = Number.isFinite(report.wgst) ? ` G${report.wgst}` : "";
+  return `${direction} ${report.wspd}${gust} kt`;
+}
+
+function formatClouds(clouds) {
+  if (!Array.isArray(clouds) || clouds.length === 0) return "Clear";
+  const ceiling = clouds.find((cloud) => cloud.cover && cloud.cover !== "CLR");
+  if (!ceiling) return "Clear";
+  return `${ceiling.cover}${ceiling.base ? ` ${ceiling.base} ft` : ""}`;
+}
+
 function compass(degrees) {
   const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   return directions[Math.round(degrees / 45) % 8];
@@ -273,6 +351,16 @@ function gustNote(gust) {
   if (gust >= 35) return "Strong gusts; secure loose outdoor items.";
   if (gust >= 20) return "Breezy at times.";
   return "Gusts are fairly light.";
+}
+
+function weatherTheme(code, isDay) {
+  if (!isDay) return "night";
+  if ([45, 48].includes(code)) return "fog";
+  if ([71, 73, 75].includes(code)) return "snow";
+  if ([95, 96, 99].includes(code)) return "storm";
+  if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return "rain";
+  if ([2, 3].includes(code)) return "cloud";
+  return "clear";
 }
 
 async function searchLocation(query) {

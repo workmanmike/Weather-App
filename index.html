@@ -48,6 +48,18 @@
 
       <section id="metricGrid" class="metric-grid" aria-live="polite"></section>
 
+      <section class="metar-panel" aria-label="Local METAR report">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Aviation observation</p>
+            <h2>Local METAR</h2>
+          </div>
+          <p id="metarStation">Nearest station pending...</p>
+        </div>
+        <pre id="metarRaw">Waiting for the local observation feed...</pre>
+        <div id="metarDetails" class="metar-details"></div>
+      </section>
+
       <section class="forecast-strip" aria-label="Short forecast">
         <div class="section-heading">
           <h2>Next few hours</h2>
