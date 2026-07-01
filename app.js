@@ -181,18 +181,18 @@ function renderWeather(data, place) {
       note: `${windDirection} winds with gusts near ${Math.round(current.wind_gusts_10m)} ${units.wind_gusts_10m}.`,
     },
     {
+      icon: "\u2195",
+      label: "Gusts",
+      value: Math.round(current.wind_gusts_10m),
+      unit: units.wind_gusts_10m,
+      note: gustNote(current.wind_gusts_10m),
+    },
+    {
       icon: "%",
       label: "Humidity",
       value: Math.round(current.relative_humidity_2m),
       unit: units.relative_humidity_2m,
       note: moistureNote(current.relative_humidity_2m),
-    },
-    {
-      icon: "P",
-      label: "Sea level pressure",
-      value: Math.round(current.pressure_msl),
-      unit: units.pressure_msl,
-      note: `Surface pressure is ${Math.round(current.surface_pressure)} ${units.surface_pressure}.`,
     },
     {
       icon: "\u2601",
@@ -207,13 +207,6 @@ function renderWeather(data, place) {
       value: Number(current.precipitation).toFixed(2),
       unit: units.precipitation,
       note: current.precipitation > 0 ? "Measurable precipitation right now." : "No measured precipitation right now.",
-    },
-    {
-      icon: "\u2195",
-      label: "Gusts",
-      value: Math.round(current.wind_gusts_10m),
-      unit: units.wind_gusts_10m,
-      note: gustNote(current.wind_gusts_10m),
     },
     {
       icon: "\u2301",
