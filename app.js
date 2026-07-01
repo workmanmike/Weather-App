@@ -21,6 +21,8 @@ const refreshStatus = document.querySelector("#refreshStatus");
 const metarStation = document.querySelector("#metarStation");
 const metarRaw = document.querySelector("#metarRaw");
 const metarDetails = document.querySelector("#metarDetails");
+const locationMap = document.querySelector("#locationMap");
+const mapCaption = document.querySelector("#mapCaption");
 const toast = document.querySelector("#toast");
 let refreshTimer;
 let countdownTimer;
@@ -75,7 +77,7 @@ function formatUpdated(value) {
 
 function setLoading(message = "Updating local conditions...") {
   metricGrid.innerHTML = Array.from({ length: 8 }, (_, index) => {
-    const label = ["Temperature", "Wind", "Humidity", "Pressure"][index] || "Weather";
+    const label = ["Wind", "Humidity", "Pressure", "Cloud cover"][index] || "Weather";
     return `
       <article class="metric-card">
         <div class="metric-top"><span class="metric-icon">&middot;</span></div>
@@ -168,15 +170,9 @@ function renderWeather(data, place) {
     `${Number(data.latitude).toFixed(3)}, ${Number(data.longitude).toFixed(3)} | ${data.timezone_abbreviation}`;
   liveStatus.textContent = "Live updates on";
   document.documentElement.dataset.weather = weatherTheme(current.weather_code, current.is_day);
+  updateLocationMap(data.latitude, data.longitude, place);
 
   const metrics = [
-    {
-      icon: "\u00b0",
-      label: "Temperature",
-      value: Math.round(current.temperature_2m),
-      unit: units.temperature_2m,
-      note: `${summary}; apparent temperature ${Math.round(current.apparent_temperature)}${units.apparent_temperature}.`,
-    },
     {
       icon: "\u2197",
       label: "Wind",
@@ -272,6 +268,29 @@ function renderHourly(hourly, units) {
       <span>${Math.round(hourly.wind_speed_10m[index])} ${units.wind_speed_10m} wind</span>
     </article>
   `).join("");
+}
+
+function updateLocationMap(latitude, longitude, place) {
+  const lat = Number(latitude);
+  const lon = Number(longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+  const zoomMargin = 0.035;
+  const bbox = [
+    lon - zoomMargin,
+    lat - zoomMargin,
+    lon + zoomMargin,
+    lat + zoomMargin,
+  ].join(",");
+
+  const params = new URLSearchParams({
+    bbox,
+    layer: "mapnik",
+    marker: `${lat},${lon}`,
+  });
+
+  locationMap.src = `https://www.openstreetmap.org/export/embed.html?${params}`;
+  mapCaption.textContent = `${place} | ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
 }
 
 async function fetchMetar(latitude, longitude) {

@@ -211,6 +211,17 @@ h1 {
   padding: clamp(24px, 5vw, 56px);
 }
 
+.hero-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(240px, 0.75fr);
+  gap: clamp(18px, 4vw, 34px);
+  align-items: center;
+}
+
+.hero-temperature {
+  min-width: 0;
+}
+
 .temperature-row {
   display: flex;
   align-items: flex-start;
@@ -235,6 +246,42 @@ h1 {
   color: var(--muted);
   font-size: 1.1rem;
   font-weight: 700;
+}
+
+.location-map {
+  position: relative;
+  overflow: hidden;
+  min-height: 214px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.location-map iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 214px;
+  border: 0;
+  filter: saturate(0.9) contrast(1.02);
+}
+
+[data-theme="dark"] .location-map iframe {
+  filter: grayscale(0.2) invert(0.9) hue-rotate(175deg) saturate(0.75) contrast(0.95);
+}
+
+.location-map span {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--surface);
+  background: color-mix(in srgb, var(--icon-bg) 86%, transparent);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.25;
 }
 
 .status-panel {
@@ -510,6 +557,10 @@ h1 {
   }
 
   .condition-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-detail-grid {
     grid-template-columns: 1fr;
   }
 

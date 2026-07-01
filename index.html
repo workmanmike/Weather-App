@@ -29,11 +29,19 @@
       <section class="condition-hero" aria-label="Current conditions">
         <div class="condition-copy">
           <p id="conditionLabel" class="eyebrow">Current conditions</p>
-          <div class="temperature-row">
-            <span id="mainTemp">--</span>
-            <span class="degree">&deg;F</span>
+          <div class="hero-detail-grid">
+            <div class="hero-temperature">
+              <div class="temperature-row">
+                <span id="mainTemp">--</span>
+                <span class="degree">&deg;F</span>
+              </div>
+              <p id="feelsLike" class="feels">Feels like --</p>
+            </div>
+            <div class="location-map" aria-label="Selected weather location map">
+              <iframe id="locationMap" title="Selected weather location map" loading="lazy"></iframe>
+              <span id="mapCaption">Location map pending</span>
+            </div>
           </div>
-          <p id="feelsLike" class="feels">Feels like --</p>
         </div>
         <div class="status-panel">
           <div class="status-badges">
