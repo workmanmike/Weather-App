@@ -105,7 +105,7 @@ async function fetchWeather(latitude, longitude, place, options = {}) {
       "precipitation",
       "weather_code",
       "cloud_cover",
-      "sea_level_pressure",
+      "pressure_msl",
       "surface_pressure",
       "wind_speed_10m",
       "wind_direction_10m",
@@ -126,7 +126,8 @@ async function fetchWeather(latitude, longitude, place, options = {}) {
   try {
     const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
     if (!response.ok) {
-      throw new Error("Weather service did not return a forecast.");
+      const details = await response.text();
+      throw new Error(details || "Weather service did not return a forecast.");
     }
 
     const data = await response.json();
@@ -184,8 +185,8 @@ function renderWeather(data, place) {
     {
       icon: "P",
       label: "Sea level pressure",
-      value: Math.round(current.sea_level_pressure),
-      unit: units.sea_level_pressure,
+      value: Math.round(current.pressure_msl),
+      unit: units.pressure_msl,
       note: `Surface pressure is ${Math.round(current.surface_pressure)} ${units.surface_pressure}.`,
     },
     {
