@@ -28,6 +28,8 @@ const metarRaw = document.querySelector("#metarRaw");
 const metarDetails = document.querySelector("#metarDetails");
 const locationMap = document.querySelector("#locationMap");
 const mapCaption = document.querySelector("#mapCaption");
+const radarImage = document.querySelector("#radarImage");
+const radarTime = document.querySelector("#radarTime");
 const toast = document.querySelector("#toast");
 let refreshTimer;
 let countdownTimer;
@@ -155,6 +157,7 @@ async function fetchWeather(latitude, longitude, place, options = {}) {
     state.nextRefreshAt = new Date(Date.now() + REFRESH_INTERVAL_MS);
     renderWeather(data, place);
     fetchMetar(latitude, longitude);
+    updateRadar(latitude, longitude);
     scheduleLiveRefresh();
   } finally {
     state.isRefreshing = false;
@@ -342,6 +345,31 @@ function updateLocationMap(latitude, longitude, place) {
 
   locationMap.src = `https://www.openstreetmap.org/export/embed.html?${params}`;
   mapCaption.textContent = `${place} | ${lat.toFixed(3)}, ${lon.toFixed(3)}`;
+}
+
+async function updateRadar(latitude, longitude) {
+  const lat = Number(latitude);
+  const lon = Number(longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+  radarTime.textContent = "Radar loading...";
+
+  try {
+    const response = await fetch("https://api.rainviewer.com/public/weather-maps.json");
+    if (!response.ok) throw new Error("Radar metadata unavailable.");
+
+    const data = await response.json();
+    const frames = data.radar?.past || [];
+    const latestFrame = frames[frames.length - 1];
+    if (!latestFrame) throw new Error("Radar frame unavailable.");
+
+    const params = `${latestFrame.path}/512/5/${lat.toFixed(4)}/${lon.toFixed(4)}/2/1_1.png`;
+    radarImage.src = `${data.host}${params}`;
+    radarTime.textContent = `Radar ${formatTime(latestFrame.time * 1000)}`;
+  } catch (error) {
+    radarImage.removeAttribute("src");
+    radarTime.textContent = "Radar unavailable";
+  }
 }
 
 async function fetchMetar(latitude, longitude) {

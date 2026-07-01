@@ -287,7 +287,8 @@ h1 {
 .status-panel {
   display: flex;
   flex-direction: column;
-  justify-content: end;
+  justify-content: space-between;
+  gap: 14px;
   min-width: 0;
   padding: 24px;
 }
@@ -296,7 +297,6 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: auto;
 }
 
 .status-badges span {
@@ -347,9 +347,65 @@ h1 {
 
 .status-panel strong {
   display: block;
-  margin: 46px 0 10px;
+  margin: 6px 0 10px;
   font-size: clamp(1.5rem, 3vw, 2.35rem);
   line-height: 1;
+}
+
+.radar-widget {
+  min-height: 122px;
+}
+
+.radar-frame {
+  position: relative;
+  overflow: hidden;
+  min-height: 104px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(22, 122, 131, 0.12) 1px, transparent 1px),
+    linear-gradient(rgba(22, 122, 131, 0.12) 1px, transparent 1px),
+    radial-gradient(circle at center, rgba(22, 122, 131, 0.16), transparent 58%),
+    var(--surface-soft);
+  background-size: 32px 32px, 32px 32px, auto, auto;
+}
+
+.radar-frame img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.92;
+}
+
+.radar-pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border: 3px solid white;
+  border-radius: 50%;
+  background: var(--warm);
+  box-shadow: 0 0 0 2px rgba(24, 32, 38, 0.42);
+  transform: translate(-50%, -50%);
+}
+
+.radar-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.radar-meta a {
+  color: var(--accent-strong);
+  text-decoration: none;
 }
 
 .metric-grid {

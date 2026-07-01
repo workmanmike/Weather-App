@@ -48,6 +48,16 @@
             <span id="dayNight">--</span>
             <span id="liveStatus" class="live-badge">Live updates on</span>
           </div>
+          <div class="radar-widget" aria-label="Local weather radar">
+            <div class="radar-frame">
+              <img id="radarImage" alt="Local radar centered on selected location" />
+              <span class="radar-pin" aria-hidden="true"></span>
+            </div>
+            <div class="radar-meta">
+              <span id="radarTime">Radar loading...</span>
+              <a href="https://www.rainviewer.com/" target="_blank" rel="noreferrer">RainViewer</a>
+            </div>
+          </div>
           <strong id="weatherSummary">Gathering local conditions</strong>
           <p id="coordinates">Waiting for location permission or a search.</p>
           <p id="refreshStatus" class="refresh-status">Next refresh pending...</p>
