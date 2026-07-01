@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Local Weather Platform</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar" aria-label="Weather controls">
+        <div>
+          <p class="eyebrow">Local weather platform</p>
+          <h1 id="placeName">Weather near you</h1>
+          <p id="updatedAt" class="muted">Locating your forecast...</p>
+        </div>
+        <form id="searchForm" class="search" autocomplete="off">
+          <label for="locationInput" class="sr-only">Search city or ZIP code</label>
+          <input id="locationInput" name="location" type="search" placeholder="City or ZIP" />
+          <button type="submit">Search</button>
+          <button id="refreshButton" type="button" class="icon-button" aria-label="Refresh weather">&#8635;</button>
+          <button id="locateButton" type="button" class="icon-button" aria-label="Use my location">&#8982;</button>
+        </form>
+      </section>
+
+      <section class="condition-hero" aria-label="Current conditions">
+        <div class="condition-copy">
+          <p id="conditionLabel" class="eyebrow">Current conditions</p>
+          <div class="temperature-row">
+            <span id="mainTemp">--</span>
+            <span class="degree">&deg;F</span>
+          </div>
+          <p id="feelsLike" class="feels">Feels like --</p>
+        </div>
+        <div class="status-panel">
+          <div class="status-badges">
+            <span id="dayNight">--</span>
+            <span id="liveStatus" class="live-badge">Live updates on</span>
+          </div>
+          <strong id="weatherSummary">Gathering local conditions</strong>
+          <p id="coordinates">Waiting for location permission or a search.</p>
+          <p id="refreshStatus" class="refresh-status">Next refresh pending...</p>
+        </div>
+      </section>
+
+      <section id="metricGrid" class="metric-grid" aria-live="polite"></section>
+
+      <section class="forecast-strip" aria-label="Short forecast">
+        <div class="section-heading">
+          <h2>Next few hours</h2>
+          <p>Temperature, rain chance, and wind at a glance.</p>
+        </div>
+        <div id="hourlyForecast" class="hourly"></div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
