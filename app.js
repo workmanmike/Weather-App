@@ -15,6 +15,7 @@ const searchForm = document.querySelector("#searchForm");
 const locationInput = document.querySelector("#locationInput");
 const locateButton = document.querySelector("#locateButton");
 const refreshButton = document.querySelector("#refreshButton");
+const themeButton = document.querySelector("#themeButton");
 const liveStatus = document.querySelector("#liveStatus");
 const refreshStatus = document.querySelector("#refreshStatus");
 const toast = document.querySelector("#toast");
@@ -358,6 +359,28 @@ function updateRefreshStatus() {
   refreshStatus.textContent = `Last live update ${last}. Next in ${next}.`;
 }
 
+function getInitialTheme() {
+  const savedTheme = window.localStorage.getItem("weather-theme");
+  if (savedTheme === "dark" || savedTheme === "light") {
+    return savedTheme;
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  themeButton.textContent = theme === "dark" ? "\u2600" : "\u263e";
+  themeButton.setAttribute("aria-pressed", String(theme === "dark"));
+  themeButton.setAttribute("aria-label", theme === "dark" ? "Switch to light mode" : "Switch to dark mode");
+}
+
+function toggleTheme() {
+  const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  window.localStorage.setItem("weather-theme", nextTheme);
+  applyTheme(nextTheme);
+}
+
 searchForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const query = locationInput.value.trim();
@@ -372,6 +395,7 @@ searchForm.addEventListener("submit", async (event) => {
 
 locateButton.addEventListener("click", locate);
 refreshButton.addEventListener("click", () => refreshNow({ silent: false }));
+themeButton.addEventListener("click", toggleTheme);
 
 document.addEventListener("visibilitychange", () => {
   if (document.hidden || !state.lastRefreshAt) return;
@@ -382,5 +406,6 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
+applyTheme(getInitialTheme());
 startCountdown();
 locate();
