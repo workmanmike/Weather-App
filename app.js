@@ -280,25 +280,118 @@ async function fetchMetar(latitude, longitude) {
   metarDetails.innerHTML = "";
 
   try {
-    const response = await fetch(`/api/metar?lat=${latitude}&lon=${longitude}`);
-    if (!response.ok) {
-      throw new Error(await response.text() || "METAR feed did not return a report.");
-    }
-
-    const report = await response.json();
+    const report = await fetchLocalMetar(latitude, longitude).catch(() => fetchNwsMetar(latitude, longitude));
     renderMetar(report);
   } catch (error) {
     metarStation.textContent = "METAR unavailable";
     metarRaw.textContent =
-      "Start the local Node server to enable METAR reports, or try again once the aviation feed is available.";
+      "The nearest station observation feed is unavailable right now.";
     metarDetails.innerHTML = "";
   }
+}
+
+async function fetchLocalMetar(latitude, longitude) {
+  const response = await fetch(`/api/metar?lat=${latitude}&lon=${longitude}`);
+  if (!response.ok) {
+    throw new Error(await response.text() || "METAR proxy did not return a report.");
+  }
+
+  return response.json();
+}
+
+async function fetchNwsMetar(latitude, longitude) {
+  const stationsResponse = await fetch(`https://api.weather.gov/points/${latitude.toFixed(4)},${longitude.toFixed(4)}/stations`);
+  if (!stationsResponse.ok) {
+    throw new Error("NWS station lookup did not return nearby stations.");
+  }
+
+  const stationData = await stationsResponse.json();
+  const stations = stationData.features?.slice(0, 10) || [];
+  let nearestObservation;
+
+  for (const station of stations) {
+    const observationResponse = await fetch(`${station.id}/observations/latest`);
+    if (!observationResponse.ok) continue;
+
+    const observationData = await observationResponse.json();
+    const report = normalizeNwsObservation(station, observationData.properties, latitude, longitude);
+
+    if (!nearestObservation) {
+      nearestObservation = report;
+    }
+
+    if (report.hasRawMetar) {
+      return report;
+    }
+  }
+
+  if (!nearestObservation) {
+    throw new Error("No nearby station observations were available.");
+  }
+
+  return nearestObservation;
+}
+
+function normalizeNwsObservation(station, observation, latitude, longitude) {
+  const coords = station.geometry?.coordinates || [];
+  const stationLon = Number(coords[0]);
+  const stationLat = Number(coords[1]);
+  const stationId = observation.stationId || station.properties?.stationIdentifier || "Station";
+  const text = observation.textDescription || "Latest station observation";
+  const tempF = celsiusToFahrenheit(observation.temperature?.value);
+  const dewpointF = celsiusToFahrenheit(observation.dewpoint?.value);
+  const windKt = kmhToKnots(observation.windSpeed?.value);
+  const gustKt = kmhToKnots(observation.windGust?.value);
+  const visibility = metersToMiles(observation.visibility?.value);
+  const pressure = pascalsToHpa(observation.barometricPressure?.value);
+
+  return {
+    icaoId: stationId,
+    stationName: observation.stationName || station.properties?.name,
+    reportTime: observation.timestamp,
+    rawOb: observation.rawMessage || synthesizeObservationText({
+      stationId,
+      text,
+      tempF,
+      dewpointF,
+      windDirection: observation.windDirection?.value,
+      windKt,
+      gustKt,
+      visibility,
+      pressure,
+    }),
+    hasRawMetar: Boolean(observation.rawMessage),
+    wdir: observation.windDirection?.value,
+    wspd: windKt,
+    wgst: gustKt,
+    visib: Number.isFinite(visibility) ? visibility.toFixed(1) : "",
+    altim: pressure,
+    clouds: normalizeNwsClouds(observation.cloudLayers),
+    lat: stationLat,
+    lon: stationLon,
+    distanceMiles: Number.isFinite(stationLat) && Number.isFinite(stationLon)
+      ? distanceMiles(latitude, longitude, stationLat, stationLon)
+      : undefined,
+  };
+}
+
+function synthesizeObservationText({ stationId, text, tempF, dewpointF, windDirection, windKt, gustKt, visibility, pressure }) {
+  const wind = Number.isFinite(windKt)
+    ? `${Number.isFinite(windDirection) ? Math.round(windDirection) : "VRB"} degrees at ${Math.round(windKt)}${Number.isFinite(gustKt) ? ` gusting ${Math.round(gustKt)}` : ""} kt`
+    : "wind unavailable";
+  const temp = Number.isFinite(tempF) ? `${Math.round(tempF)}F` : "temperature unavailable";
+  const dewpoint = Number.isFinite(dewpointF) ? `${Math.round(dewpointF)}F dewpoint` : "dewpoint unavailable";
+  const vis = Number.isFinite(visibility) ? `${visibility.toFixed(1)} SM visibility` : "visibility unavailable";
+  const altimeter = Number.isFinite(pressure) ? `${Math.round(pressure)} hPa` : "pressure unavailable";
+
+  return `${stationId} ${text}. ${wind}; ${vis}; ${temp}; ${dewpoint}; altimeter ${altimeter}.`;
 }
 
 function renderMetar(report) {
   const observed = report.reportTime || report.receiptTime;
   const distance = Number.isFinite(report.distanceMiles) ? `${report.distanceMiles.toFixed(1)} mi away` : "nearby";
-  metarStation.textContent = `${report.icaoId || "Station"} | ${distance} | ${observed ? formatUpdated(observed) : "latest"}`;
+  const station = [report.icaoId || "Station", report.stationName].filter(Boolean).join(" ");
+  metarStation.textContent = `${station} | ${distance} | ${observed ? formatUpdated(observed) : "latest"}`;
   metarRaw.textContent = report.rawOb || "No raw METAR text returned.";
 
   const details = [
@@ -330,9 +423,49 @@ function formatClouds(clouds) {
   return `${ceiling.cover}${ceiling.base ? ` ${ceiling.base} ft` : ""}`;
 }
 
+function normalizeNwsClouds(cloudLayers) {
+  if (!Array.isArray(cloudLayers) || cloudLayers.length === 0) return [];
+
+  return cloudLayers.map((layer) => ({
+    cover: layer.amount,
+    base: Number.isFinite(layer.base?.value) ? Math.round(layer.base.value * 3.28084) : undefined,
+  }));
+}
+
 function compass(degrees) {
   const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   return directions[Math.round(degrees / 45) % 8];
+}
+
+function celsiusToFahrenheit(value) {
+  return Number.isFinite(value) ? (value * 9) / 5 + 32 : undefined;
+}
+
+function kmhToKnots(value) {
+  return Number.isFinite(value) ? value / 1.852 : undefined;
+}
+
+function metersToMiles(value) {
+  return Number.isFinite(value) ? value / 1609.344 : undefined;
+}
+
+function pascalsToHpa(value) {
+  return Number.isFinite(value) ? value / 100 : undefined;
+}
+
+function distanceMiles(lat1, lon1, lat2, lon2) {
+  const earthRadiusMiles = 3958.8;
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) ** 2;
+
+  return 2 * earthRadiusMiles * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function toRadians(degrees) {
+  return degrees * (Math.PI / 180);
 }
 
 function moistureNote(humidity) {
